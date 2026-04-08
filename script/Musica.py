@@ -28,5 +28,5 @@ class Boton:
         pass
 
 def cuadros(root):
-    panel_izq = ttk.LabelFrame(root, text="Panel de Operaciones")
+    panel_izq = ttk.LabelFrame(root, text="Panel de Operaciones", bg="black")
     panel_izq.place(x=10, y=10, width=300, height=680)
