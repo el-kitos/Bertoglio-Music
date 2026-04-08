@@ -1,4 +1,7 @@
-class Botones:
+import tkinter as tk
+from tkinter import ttk, messagebox
+
+class Boton:
     def __init__(self, ventana, pos_x, pos_y, imagen, action):
         self.ventana = ventana
         self.pos_x = pos_x
@@ -6,7 +9,7 @@ class Botones:
         self.imagen = imagen
         self.action = action
     
-    def play():
+    def play(self):
         pass
     
     def pause():
@@ -23,3 +26,7 @@ class Botones:
 
     def volume():
         pass
+
+def cuadros(root):
+    panel_izq = ttk.LabelFrame(root, text="Panel de Operaciones")
+    panel_izq.place(x=10, y=10, width=300, height=680)
