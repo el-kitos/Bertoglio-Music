@@ -1,11 +1,11 @@
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk  # Import Pillow modules
-from Musica import cuadros
+from interfazVisual import cuadros_pag_principal, cargar_imagen, aplicar_botones, botones
 
 root = tk.Tk()
 root.title("Reproductor de Musica")
-root.geometry("1920x1080")
+root.geometry("1366x768")
 
 image = Image.open("assets/background.png")
 bg_image = ImageTk.PhotoImage(image)
@@ -14,7 +14,11 @@ bg_image = ImageTk.PhotoImage(image)
 bg_label = tk.Label(root, image=bg_image)
 bg_label.place(x=0, y=0, relwidth=1, relheight=1)
 
-cuadros(root)
+def main():
+    cuadros_pag_principal(root)
+
+
+main()
 root.mainloop()
 
 
