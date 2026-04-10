@@ -1,5 +1,4 @@
-import tkinter as tk
-from tkinter import ttk
+import customtkinter as ctk
 from PIL import Image, ImageTk
 from tkinter import filedialog
 import os
@@ -9,11 +8,8 @@ import pygame
 
 pygame.mixer.init()
 
-
-
 rutas = []
 lista_canciones = None
-
 
 def cargar_imagen(ruta, ancho=None, alto=None):
     img = Image.open(ruta)
@@ -21,32 +17,27 @@ def cargar_imagen(ruta, ancho=None, alto=None):
         img = img.resize((ancho, alto))
     return ImageTk.PhotoImage(img)
 
-
 #---------Funciones para crear botones---------
 def botones(root, text, font, bg, fg, width, height, command):
-    return tk.Button(root, text=text, font=font, bg=bg, fg=fg, width=width, height=height, command=command)
-
+    return ctk.CTkButton(root, text=text, font=font, fg_color=bg, text_color=fg, width=width, height=height, command=command)
 
 def aplicar_botones(boton, x, y):
-    boton.place(x=x, y=y)
-
+    boton.place(relx=x, rely=y)
 
 #-------Funciones para interfaz--------
 def cuadros_pag_principal(root):
     global lista_canciones
 
-    style = ttk.Style()
-    style.configure('SinBorde.TLabelframe', background='#000000')
-    style.configure('SinBorde.TLabelframe.Label', font='arial 14 bold', background='#000000', foreground='#ffffff')
+    panel_izq = ctk.CTkFrame(root, width=350, height=768, fg_color="#2b2b2b", corner_radius=15)
+    panel_izq.place(x=0, y=0)
 
-    panel_izq = ttk.LabelFrame(root, text="Canciones", style="SinBorde.TLabelframe")
-    panel_izq.place(x=0, y=0, width=300, height=768)
+    titulo = ctk.CTkLabel(panel_izq, text="🎵 Canciones", font=ctk.CTkFont(size=20, weight="bold"), text_color="#ffffff")
+    titulo.pack(pady=0)
 
-    lista_canciones = tk.Listbox(panel_izq, bg="#111111", fg="#ffffff", font=("Arial", 12), selectbackground="#444444")
-    lista_canciones.place(x=10, y=80, width=280, height=720)
-    lista_canciones.bind("<Double-Button-1>", reproducir_cancion)
+    lista_canciones = ctk.CTkScrollableFrame(panel_izq, width=320, height=650, fg_color="#1f1f1f", corner_radius=10)
+    lista_canciones.pack(pady=70, padx=15)
+
     return lista_canciones
-
 
 #-------Funciones para reproducir canciones---------
 def reproducir_cancion(event=None):
@@ -68,9 +59,7 @@ def reproducir_cancion(event=None):
         except Exception:
             pass
 
-
 #-------Funciones para agregar una cancion---------
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MUSICA_DIR = os.path.join(BASE_DIR, "musica")
 DATABASE_PATH = os.path.join(BASE_DIR, "BaseDeDatos.json")
@@ -95,17 +84,25 @@ def agregar_canciones():
 
         if nombre not in rutas:
             rutas.append(nombre)
-            if lista_canciones is not None:
-                lista_canciones.insert(tk.END, nombre)
+            cancion_btn = ctk.CTkButton(lista_canciones, text=f"🎶 {nombre}", command=lambda n=nombre: reproducir_cancion_por_nombre(n), fg_color="#3a3a3a", hover_color="#4a4a4a", corner_radius=8)
+            cancion_btn.pack(pady=5, fill="x", padx=10)
 
     guardar_canciones()
 
+def reproducir_cancion_por_nombre(nombre):
+    ruta_cancion = os.path.join(MUSICA_DIR, nombre)
+    if os.path.exists(ruta_cancion):
+        try:
+            pygame.mixer.music.stop()
+            pygame.mixer.music.load(ruta_cancion)
+            pygame.mixer.music.play()
+        except Exception:
+            pass
 
 def guardar_canciones():
     os.makedirs(MUSICA_DIR, exist_ok=True)
     with open(DATABASE_PATH, "w", encoding="utf-8") as f:
         json.dump(rutas, f, ensure_ascii=False, indent=2)
-
 
 def cargar_canciones():
     if not os.path.exists(DATABASE_PATH):
@@ -120,8 +117,8 @@ def cargar_canciones():
     for nombre in datos:
         if nombre not in rutas:
             rutas.append(nombre)
-            if lista_canciones is not None:
-                lista_canciones.insert(tk.END, nombre)
+            cancion_btn = ctk.CTkButton(lista_canciones, text=f"🎶 {nombre}", command=lambda n=nombre: reproducir_cancion_por_nombre(n), fg_color="#3a3a3a", hover_color="#4a4a4a", corner_radius=8)
+            cancion_btn.pack(pady=5, fill="x", padx=10)
     
 
 
