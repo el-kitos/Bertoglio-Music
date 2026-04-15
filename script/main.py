@@ -1,7 +1,7 @@
 import os
 import customtkinter as ctk
 from PIL import Image, ImageTk
-from interfazVisual import cuadros_pag_principal, aplicar_botones, botones, agregar_canciones, cargar_canciones, crear_playlist, cargar_playlists
+from interfazVisual import cuadros_pag_principal, aplicar_botones, botones, botones_imagen, agregar_canciones, cargar_canciones, crear_playlist, cargar_playlists, play, registrar_play_boton
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -40,6 +40,9 @@ def main():
     global agregar_cancion_boton, crear_playlist_boton
     agregar_cancion_boton = botones(root, "➕ Agregar Canción", ctk.CTkFont(size=14, weight="bold"), "#4a4a4a", "#ffffff", 200, 50, command=agregar_canciones)
     crear_playlist_boton = botones(root, "📁 Crear Playlist", ctk.CTkFont(size=14, weight="bold"), "#4a4a4a", "#ffffff", 200, 50, command=crear_playlist)
+    play_boton = botones_imagen(root, ruta_imagen="assets/botones/play-button.png", width=50, height=50, bg="#4a4a4a", hover_bg="#5a5a5a", command=lambda: play(play_boton))
+    registrar_play_boton(play_boton)
+    aplicar_botones(play_boton, 0.65, 0.9)
 
     panel = cuadros_pag_principal(root, update_buttons)
 

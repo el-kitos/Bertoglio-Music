@@ -11,13 +11,11 @@ pygame.mixer.init()
 # Cambia 'rutas' por 'playlists' como diccionario: {"nombre_playlist": ["cancion1.mp3", "cancion2.mp3"]}
 playlists = {}
 playlist_actual = None  # Para rastrear la playlist seleccionada
+cancion_seleccionada = None  # Para rastrear la canción seleccionada
+cancion_actual = None  # Canción que está cargada/reproduciéndose
+estado = 0  # 0 = detenido, 1 = reproduciendo, 2 = pausado
+play_boton = None  # Referencia al botón de play/pausa
 playlists_frame = None  # Para recargar la interfaz
-
-def cargar_imagen(ruta, ancho=None, alto=None):
-    img = Image.open(ruta)
-    if ancho and alto:
-        img = img.resize((ancho, alto))
-    return ImageTk.PhotoImage(img)
 
 def cargar_imagen(ruta, ancho=None, alto=None):
     img = Image.open(ruta)
@@ -28,6 +26,26 @@ def cargar_imagen(ruta, ancho=None, alto=None):
 #---------Funciones para crear botones---------
 def botones(root, text, font, bg, fg, width, height, command):
     return ctk.CTkButton(root, text=text, font=font, fg_color=bg, text_color=fg, width=width, height=height, command=command)
+
+def botones_imagen(root, ruta_imagen, width=None, height=None, bg="#4a4a4a", hover_bg="#5a5a5a", command=None):
+    img = Image.open(ruta_imagen)
+    if width and height:
+        img = img.resize((width, height))
+    img_tk = ImageTk.PhotoImage(img)
+    
+    boton = ctk.CTkButton(
+        root,
+        image=img_tk,
+        text="",
+        fg_color=bg,
+        hover_color=hover_bg,
+        width=width if width else 50,
+        height=height if height else 50,
+        command=command
+    )
+    # Guardar referencia a la imagen para evitar que sea recolectada por basura
+    boton.image = img_tk
+    return boton
 
 def aplicar_botones(boton, x, y):
     boton.place(relx=x, rely=y)
@@ -82,23 +100,85 @@ def seleccionar_playlist(nombre_playlist, frame, update_callback):
 
     # Mostrar canciones de la playlist
     for cancion in playlists[nombre_playlist]:
-        cancion_btn = ctk.CTkButton(frame, text=f"🎶 {cancion}", command=lambda c=cancion: reproducir_cancion_por_nombre(c), fg_color="#3a3a3a", hover_color="#4a4a4a", corner_radius=8)
+        cancion_btn = ctk.CTkButton(frame, text=f"🎶 {cancion}", command=lambda c=cancion: seleccionar_cancion(c), fg_color="#3a3a3a", hover_color="#4a4a4a", corner_radius=8)
         cancion_btn.pack(pady=5, fill="x", padx=10)
+        cancion_btn.bind("<Double-Button-1>", lambda event, c=cancion: seleccionar_cancion_doble(c))
 
     update_callback(playlist_actual)
 
 #-------Funciones para reproducir canciones---------
-def reproducir_cancion_por_nombre(nombre):
-    if playlist_actual and nombre in playlists[playlist_actual]:
-        ruta_cancion = os.path.join(MUSICA_DIR, nombre)
-        if os.path.exists(ruta_cancion):
+def seleccionar_cancion(nombre):
+    """Selecciona una canción para reproducir después"""
+    global cancion_seleccionada
+    cancion_seleccionada = nombre
+
+def seleccionar_cancion_doble(nombre):
+    """Selecciona la canción al hacer doble clic"""
+    seleccionar_cancion(nombre)
+    if play_boton is not None:
+        play(play_boton)
+
+
+def registrar_play_boton(boton):
+    global play_boton
+    play_boton = boton
+
+
+def play(play_boton):
+    global estado
+    if not (cancion_seleccionada and playlist_actual and cancion_seleccionada in playlists[playlist_actual]):
+        messagebox.showwarning("Atención", "Selecciona una canción primero")
+        return
+
+    ruta_cancion = os.path.join(MUSICA_DIR, cancion_seleccionada)
+    if not os.path.exists(ruta_cancion):
+        messagebox.showerror("Error", "No se encontró el archivo de la canción")
+        return
+
+    global cancion_actual
+
+    if estado == 0 or cancion_seleccionada != cancion_actual:
+        try:
+            pygame.mixer.music.stop()
+            pygame.mixer.music.load(ruta_cancion)
+            pygame.mixer.music.play()
+            cancion_actual = cancion_seleccionada
+            imagen_pause = cargar_imagen("assets/botones/pause.png", ancho=50, alto=50)
+            play_boton.configure(image=imagen_pause)
+            play_boton.image = imagen_pause
+            estado = 1
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo reproducir la canción: {e}")
+
+    elif estado == 1:
+        pygame.mixer.music.pause()
+        imagen_play = cargar_imagen("assets/botones/play-button.png", ancho=50, alto=50)
+        play_boton.configure(image=imagen_play)
+        play_boton.image = imagen_play
+        estado = 2
+
+    else:
+        if cancion_seleccionada != cancion_actual:
             try:
                 pygame.mixer.music.stop()
                 pygame.mixer.music.load(ruta_cancion)
                 pygame.mixer.music.play()
-            except Exception:
-                pass
+                cancion_actual = cancion_seleccionada
+                imagen_pause = cargar_imagen("assets/botones/pause.png", ancho=50, alto=50)
+                play_boton.configure(image=imagen_pause)
+                play_boton.image = imagen_pause
+                estado = 1
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo reproducir la canción: {e}")
+        else:
+            pygame.mixer.music.unpause()
+            imagen_pause = cargar_imagen("assets/botones/pause.png", ancho=50, alto=50)
+            play_boton.configure(image=imagen_pause)
+            play_boton.image = imagen_pause
+            estado = 1
+        
 
+    
 #-------Funciones para agregar una canción---------
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MUSICA_DIR = os.path.join(BASE_DIR, "musica")
