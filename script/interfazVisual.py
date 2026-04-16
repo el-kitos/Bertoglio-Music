@@ -364,7 +364,7 @@ def agregar_canciones():
 
     archivos = filedialog.askopenfilenames(
         title="Seleccionar canción",
-        filetypes=[("Archivos MP3", "*.mp3")]
+        filetypes=[("Archivos MP3", "*.mp3, *.flac")]
     )
 
     if not archivos:
