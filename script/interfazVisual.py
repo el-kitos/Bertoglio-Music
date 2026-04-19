@@ -47,11 +47,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MUSICA_DIR = os.path.join(BASE_DIR, "musica")
 DATABASE_PATH = os.path.join(BASE_DIR, "BaseDeDatos.json")
 ASSET_DIR = os.path.join(BASE_DIR, "assets")
-shuffle_enabled = False
-loop_enabled = False
-song_ended = False
 
 def cargar_imagen(ruta, ancho=None, alto=None):
+    if isinstance(ruta, str) and not os.path.isabs(ruta):
+        ruta = os.path.normpath(os.path.join(ASSET_DIR, ruta))
     img = Image.open(ruta)
     if ancho and alto:
         img = img.resize((ancho, alto))

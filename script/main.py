@@ -6,12 +6,15 @@ from interfazVisual import cuadros_pag_principal, aplicar_botones, botones, boto
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+ASSET_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "assets"))
+
 root = ctk.CTk()
 root.title("Reproductor de Música")
 root.geometry("1366x768")
-root.iconbitmap("../assets/icon.ico")
+root.iconbitmap(os.path.join(ASSET_DIR, "icon.ico"))
 
-image = Image.open("../assets/background.png")
+image = Image.open(os.path.join(ASSET_DIR, "background.png"))
 bg_image = ImageTk.PhotoImage(image)
 
 bg_label = ctk.CTkLabel(root, image=bg_image, text="")
@@ -47,23 +50,23 @@ def main():
     eliminar_cancion_boton = botones(root, "🗑️ Eliminar Canción", ctk.CTkFont(size=14, weight="bold"), "#9f1f1f", "#ffffff", 200, 50, command=eliminar_cancion)
     eliminar_cancion_boton.place_forget()
 
-    previous_boton = botones_imagen(root, ruta_imagen="../assets/botones/rewind.png", width=50, height=50, bg="#4a4a4a", hover_bg="#5a5a5a", command=previous_song)
+    previous_boton = botones_imagen(root, ruta_imagen=os.path.join(ASSET_DIR, "botones", "rewind.png"), width=50, height=50, bg="#4a4a4a", hover_bg="#5a5a5a", command=previous_song)
     aplicar_botones(previous_boton, 0.40, 0.93)
 
-    shuffle_boton = botones_imagen(root, ruta_imagen="../assets/botones/shuffle.png", width=50, height=50, bg="#4a4a4a", hover_bg="#5a5a5a", command=lambda: toggle_shuffle(shuffle_boton))
+    shuffle_boton = botones_imagen(root, ruta_imagen=os.path.join(ASSET_DIR, "botones", "shuffle.png"), width=50, height=50, bg="#4a4a4a", hover_bg="#5a5a5a", command=lambda: toggle_shuffle(shuffle_boton))
     aplicar_botones(shuffle_boton, 0.35, 0.93)
 
-    play_boton = botones_imagen(root, ruta_imagen="../assets/botones/play-button.png", width=50, height=50, bg="#4a4a4a", hover_bg="#5a5a5a", command=lambda: play(play_boton))
+    play_boton = botones_imagen(root, ruta_imagen=os.path.join(ASSET_DIR, "botones", "play-button.png"), width=50, height=50, bg="#4a4a4a", hover_bg="#5a5a5a", command=lambda: play(play_boton))
     registrar_play_boton(play_boton)
     aplicar_botones(play_boton, 0.45, 0.93)
 
-    next_boton = botones_imagen(root, ruta_imagen="../assets/botones/next.png", width=50, height=50, bg="#4a4a4a", hover_bg="#5a5a5a", command=next_song)
+    next_boton = botones_imagen(root, ruta_imagen=os.path.join(ASSET_DIR, "botones", "next.png"), width=50, height=50, bg="#4a4a4a", hover_bg="#5a5a5a", command=next_song)
     aplicar_botones(next_boton, 0.50, 0.93)
 
-    loop_boton = botones_imagen(root, ruta_imagen="../assets/botones/loop.png", width=50, height=50, bg="#4a4a4a", hover_bg="#5a5a5a", command=lambda: toggle_loop(loop_boton))
+    loop_boton = botones_imagen(root, ruta_imagen=os.path.join(ASSET_DIR, "botones", "loop.png"), width=50, height=50, bg="#4a4a4a", hover_bg="#5a5a5a", command=lambda: toggle_loop(loop_boton))
     aplicar_botones(loop_boton, 0.55, 0.93)
 
-    mute_boton = botones_imagen(root, ruta_imagen="../assets/botones/volume-mute.png", width=50, height=50, bg="#4a4a4a", hover_bg="#5a5a5a", command=toggle_mute)
+    mute_boton = botones_imagen(root, ruta_imagen=os.path.join(ASSET_DIR, "botones", "volume-mute.png"), width=50, height=50, bg="#4a4a4a", hover_bg="#5a5a5a", command=toggle_mute)
     aplicar_botones(mute_boton, 0.60, 0.93)
 
     volume_slider = ctk.CTkSlider(root, from_=0, to=1, command=set_volume)
