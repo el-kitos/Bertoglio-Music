@@ -10,7 +10,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSET_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "assets"))
 
 root = ctk.CTk()
-root.title("Reproductor de Música")
+root.title("Bertoglio Music")
 root.geometry("1366x768")
 root.iconbitmap(os.path.join(ASSET_DIR, "icon.ico"))
 

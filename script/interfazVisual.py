@@ -47,6 +47,9 @@ search_results_frame = None
 search_results_visible = False
 seleccion_desde_busqueda = False
 
+# Cache de metadatos para búsqueda: {nombre_cancion: {'title': ..., 'artist': ..., 'album': ...}}
+metadatos_cache = {}
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MUSICA_DIR = os.path.join(BASE_DIR, "musica")
 DATABASE_PATH = os.path.join(BASE_DIR, "BaseDeDatos.json")
@@ -536,7 +539,7 @@ def registrar_cover_widgets(c_label, a_label, t_label):
     title_label = t_label
 
 def cargar_canciones():
-    global playlists
+    global playlists, metadatos_cache
     if not os.path.exists(DATABASE_PATH):
         return
 
@@ -550,10 +553,47 @@ def cargar_canciones():
                 playlists = datos
     except (json.JSONDecodeError, ValueError):
         playlists = {}
+    
+    # Limpiar cache de metadatos al cargar nuevas playlists
+    metadatos_cache = {}
 
 #-------Funciones de búsqueda-------
+def obtener_metadatos_cancion(nombre_cancion):
+    """Obtiene los metadatos (título, artista, álbum) de una canción"""
+    global metadatos_cache, MUSICA_DIR
+    
+    # Verificar si ya está en cache
+    if nombre_cancion in metadatos_cache:
+        return metadatos_cache[nombre_cancion]
+    
+    ruta_cancion = os.path.join(MUSICA_DIR, nombre_cancion)
+    if not os.path.exists(ruta_cancion):
+        metadatos_cache[nombre_cancion] = {'title': nombre_cancion, 'artist': '', 'album': ''}
+        return metadatos_cache[nombre_cancion]
+    
+    try:
+        ext = os.path.splitext(ruta_cancion)[1].lower()
+        metadatos = {'title': nombre_cancion, 'artist': '', 'album': ''}
+        
+        if ext == '.mp3':
+            audio = MP3(ruta_cancion)
+            metadatos['title'] = str(audio.tags.get('TIT2', nombre_cancion)) if audio.tags and 'TIT2' in audio.tags else nombre_cancion
+            metadatos['artist'] = str(audio.tags.get('TPE1', '')) if audio.tags and 'TPE1' in audio.tags else ''
+            metadatos['album'] = str(audio.tags.get('TALB', '')) if audio.tags and 'TALB' in audio.tags else ''
+        elif ext == '.flac':
+            audio = FLAC(ruta_cancion)
+            metadatos['title'] = str(audio.tags.get('title', [nombre_cancion])[0]) if 'title' in audio.tags else nombre_cancion
+            metadatos['artist'] = str(audio.tags.get('artist', [''])[0]) if 'artist' in audio.tags else ''
+            metadatos['album'] = str(audio.tags.get('album', [''])[0]) if 'album' in audio.tags else ''
+        
+        metadatos_cache[nombre_cancion] = metadatos
+        return metadatos
+    except Exception:
+        metadatos_cache[nombre_cancion] = {'title': nombre_cancion, 'artist': '', 'album': ''}
+        return metadatos_cache[nombre_cancion]
+
 def buscar_canciones(query, update_callback):
-    """Busca canciones en todas las playlists y retorna coincidencias"""
+    """Busca canciones en todas las playlists por nombre, artista o álbum"""
     if not query or len(query.strip()) < 1:
         return []
     
@@ -563,8 +603,15 @@ def buscar_canciones(query, update_callback):
     # Buscar en todas las playlists
     for nombre_playlist, canciones in playlists.items():
         for cancion in canciones:
-            if query_lower in cancion.lower():
-                resultados.append((nombre_playlist, cancion))
+            # Obtener metadatos de la canción
+            metadatos = obtener_metadatos_cancion(cancion)
+            
+            # Buscar en nombre de archivo, título, artista y álbum
+            if (query_lower in cancion.lower() or 
+                query_lower in metadatos['title'].lower() or 
+                query_lower in metadatos['artist'].lower() or 
+                query_lower in metadatos['album'].lower()):
+                resultados.append((nombre_playlist, cancion, metadatos))
     
     return resultados
 
@@ -586,15 +633,28 @@ def mostrar_resultados_busqueda(query, frame, update_callback):
         label_no_results.pack(pady=10)
         return
     
-    # Mostrar resultados
-    for nombre_playlist, cancion in resultados:
+    # Mostrar resultados con metadatos
+    for item in resultados:
+        nombre_playlist = item[0]
+        cancion = item[1]
+        metadatos = item[2] if len(item) > 2 else {'title': cancion, 'artist': '', 'album': ''}
+        
+        # Crear texto con información adicional
+        texto = f"🎵 {metadatos['title']}"
+        if metadatos['artist']:
+            texto += f"\n   └ {metadatos['artist']}"
+        if metadatos['album']:
+            texto += f" • {metadatos['album']}"
+        
         btn_resultado = ctk.CTkButton(
             frame, 
-            text=f"🎵 {cancion}",
+            text=texto,
             command=lambda p=nombre_playlist, c=cancion: seleccionar_y_reproducir(p, c),
             fg_color="#3a3a3a", 
             hover_color="#4a4a4a", 
-            corner_radius=8
+            corner_radius=8,
+            anchor="w",
+            height=50
         )
         btn_resultado.pack(pady=3, fill="x", padx=5)
 
