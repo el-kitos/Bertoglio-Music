@@ -54,7 +54,7 @@ A este proyecto lo elegí por el simple hecho de que las otras opciones que se o
 
 * Principalmente correcion de bugs
 
-## 2026-04-22
+### 2026-04-22
 
 * Ajustes finales en la interfaz
 * Barra de busqueda realizada
