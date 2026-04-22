@@ -42,6 +42,10 @@ title_label = None
 shuffle_enabled = False
 loop_enabled = False
 song_ended = False
+search_entry = None
+search_results_frame = None
+search_results_visible = False
+seleccion_desde_busqueda = False
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MUSICA_DIR = os.path.join(BASE_DIR, "musica")
@@ -151,8 +155,14 @@ def seleccionar_playlist(nombre_playlist, frame, update_callback):
 #-------Funciones para reproducir canciones---------
 def seleccionar_cancion(nombre):
     """Selecciona una canción para reproducir después"""
-    global cancion_seleccionada
+    global cancion_seleccionada, playlist_actual
     cancion_seleccionada = nombre
+    # Si no hay playlist actual, buscar en qué playlist está la canción
+    if not playlist_actual:
+        for nombre_playlist, canciones in playlists.items():
+            if nombre in canciones:
+                playlist_actual = nombre_playlist
+                break
     if interfaz_callback:
         interfaz_callback(playlist_actual, cancion_seleccionada)
 
@@ -238,8 +248,20 @@ def eliminar_cancion():
 def play(play_boton):
     global estado, cancion_actual, cancion_seleccionada, playlist_actual, playlists, MUSICA_DIR, duration, seeking, current_offset, current_artist, current_title, current_cover, song_ended
 
-    same_song = cancion_seleccionada and cancion_actual and cancion_seleccionada == cancion_actual
-    valid_selection = cancion_seleccionada and playlist_actual and cancion_seleccionada in playlists[playlist_actual]
+    # Usar cancion_actual si cancion_seleccionada no está disponible (ej. después de borrar búsqueda)
+    cancion_a_verificar = cancion_seleccionada if cancion_seleccionada else cancion_actual
+    playlist_a_verificar = playlist_actual if playlist_actual else "Canciones"  # Playlist por defecto
+    
+    same_song = cancion_a_verificar and cancion_actual and cancion_a_verificar == cancion_actual
+    
+    # Verificar si la canción está en alguna playlist
+    valid_selection = False
+    if cancion_a_verificar and playlist_a_verificar:
+        for nombre_playlist, canciones in playlists.items():
+            if cancion_a_verificar in canciones:
+                playlist_a_verificar = nombre_playlist
+                valid_selection = True
+                break
 
     if estado == 1 and same_song:
         pygame.mixer.music.pause()
@@ -261,7 +283,17 @@ def play(play_boton):
         messagebox.showwarning("Atención", "Selecciona una canción primero")
         return
 
-    ruta_cancion = os.path.join(MUSICA_DIR, cancion_seleccionada)
+    # Usar la primera playlist que contenga la canción
+    ruta_cancion = None
+    for nombre_playlist, canciones in playlists.items():
+        if cancion_a_verificar in canciones:
+            playlist_actual = nombre_playlist
+            ruta_cancion = os.path.join(MUSICA_DIR, cancion_a_verificar)
+            break
+    
+    if not ruta_cancion:
+        ruta_cancion = os.path.join(MUSICA_DIR, cancion_a_verificar)
+    
     if not os.path.exists(ruta_cancion):
         messagebox.showerror("Error", "No se encontró el archivo de la canción")
         return
@@ -313,16 +345,30 @@ def play(play_boton):
         messagebox.showerror("Error", f"No se pudo reproducir la canción: {e}")
 
 def next_song():
-    global cancion_seleccionada, estado, shuffle_enabled
-    if not playlist_actual or not playlists[playlist_actual]:
+    global cancion_seleccionada, playlist_actual, estado, shuffle_enabled
+    
+    # Buscar la canción actual en cualquier playlist
+    cancion_a_buscar = cancion_seleccionada if cancion_seleccionada else cancion_actual
+    if not cancion_a_buscar:
         return
-
-    playlist = playlists[playlist_actual]
+    
+    # Encontrar la playlist que contiene la canción
+    playlist_encontrada = None
+    for nombre_playlist, canciones in playlists.items():
+        if cancion_a_buscar in canciones:
+            playlist_encontrada = nombre_playlist
+            break
+    
+    if not playlist_actual or not playlist_encontrada:
+        return
+    
+    playlist = playlists[playlist_encontrada]
+    playlist_actual = playlist_encontrada
     current_index = 0
 
     try:
-        if cancion_seleccionada and cancion_seleccionada in playlist:
-            current_index = playlist.index(cancion_seleccionada)
+        if cancion_a_buscar and cancion_a_buscar in playlist:
+            current_index = playlist.index(cancion_a_buscar)
     except ValueError:
         current_index = 0
 
@@ -341,16 +387,30 @@ def next_song():
         play(play_boton)
 
 def previous_song():
-    global cancion_seleccionada, estado, shuffle_enabled
-    if not playlist_actual or not playlists[playlist_actual]:
+    global cancion_seleccionada, playlist_actual, estado, shuffle_enabled
+    
+    # Buscar la canción actual en cualquier playlist
+    cancion_a_buscar = cancion_seleccionada if cancion_seleccionada else cancion_actual
+    if not cancion_a_buscar:
         return
-
-    playlist = playlists[playlist_actual]
+    
+    # Encontrar la playlist que contiene la canción
+    playlist_encontrada = None
+    for nombre_playlist, canciones in playlists.items():
+        if cancion_a_buscar in canciones:
+            playlist_encontrada = nombre_playlist
+            break
+    
+    if not playlist_actual or not playlist_encontrada:
+        return
+    
+    playlist = playlists[playlist_encontrada]
+    playlist_actual = playlist_encontrada
     current_index = 0
 
     try:
-        if cancion_seleccionada and cancion_seleccionada in playlist:
-            current_index = playlist.index(cancion_seleccionada)
+        if cancion_a_buscar and cancion_a_buscar in playlist:
+            current_index = playlist.index(cancion_a_buscar)
     except ValueError:
         current_index = 0
 
@@ -490,6 +550,134 @@ def cargar_canciones():
                 playlists = datos
     except (json.JSONDecodeError, ValueError):
         playlists = {}
+
+#-------Funciones de búsqueda-------
+def buscar_canciones(query, update_callback):
+    """Busca canciones en todas las playlists y retorna coincidencias"""
+    if not query or len(query.strip()) < 1:
+        return []
+    
+    query_lower = query.lower().strip()
+    resultados = []
+    
+    # Buscar en todas las playlists
+    for nombre_playlist, canciones in playlists.items():
+        for cancion in canciones:
+            if query_lower in cancion.lower():
+                resultados.append((nombre_playlist, cancion))
+    
+    return resultados
+
+def mostrar_resultados_busqueda(query, frame, update_callback):
+    """Muestra los resultados de búsqueda en un frame"""
+    global search_results_frame
+    
+    # Limpiar resultados anteriores
+    for widget in frame.winfo_children():
+        widget.destroy()
+    
+    if not query or len(query.strip()) < 1:
+        return
+    
+    resultados = buscar_canciones(query, update_callback)
+    
+    if not resultados:
+        label_no_results = ctk.CTkLabel(frame, text="No se encontraron canciones", text_color="#888888")
+        label_no_results.pack(pady=10)
+        return
+    
+    # Mostrar resultados
+    for nombre_playlist, cancion in resultados:
+        btn_resultado = ctk.CTkButton(
+            frame, 
+            text=f"🎵 {cancion}",
+            command=lambda p=nombre_playlist, c=cancion: seleccionar_y_reproducir(p, c),
+            fg_color="#3a3a3a", 
+            hover_color="#4a4a4a", 
+            corner_radius=8
+        )
+        btn_resultado.pack(pady=3, fill="x", padx=5)
+
+def seleccionar_y_reproducir(playlist_name, song_name):
+    """Selecciona una canción de los resultados de búsqueda y la reproduce"""
+    global playlist_actual, cancion_seleccionada, seleccion_desde_busqueda
+    playlist_actual = playlist_name
+    cancion_seleccionada = song_name
+    seleccion_desde_busqueda = True
+    if interfaz_callback:
+        interfaz_callback(playlist_actual, cancion_seleccionada)
+    if play_boton:
+        play(play_boton)
+
+def obtener_seleccion_desde_busqueda():
+    """Retorna si la canción actual fue seleccionada desde la búsqueda"""
+    global seleccion_desde_busqueda
+    return seleccion_desde_busqueda
+
+def resetear_seleccion_busqueda():
+    """Resetea el flag de selección desde búsqueda"""
+    global seleccion_desde_busqueda
+    seleccion_desde_busqueda = False
+
+def crear_barra_busqueda(root, update_callback):
+    """Crea la barra de búsqueda y el frame de resultados"""
+    global search_entry, search_results_frame
+    
+    # Frame contenedor para la búsqueda
+    search_container = ctk.CTkFrame(root, fg_color="transparent")
+    search_container.place(relx=0.35, rely=0.02, relwidth=0.5, relheight=0.08)
+    
+    # Barra de búsqueda
+    search_entry = ctk.CTkEntry(
+        search_container, 
+        placeholder_text="🔍 Buscar canción...",
+        font=ctk.CTkFont(size=14),
+        fg_color="#2b2b2b",
+        border_color="#4a4a4a",
+        text_color="#ffffff"
+    )
+    search_entry.pack(fill="x", pady=5)
+    
+    # Frame para resultados (inicialmente oculto)
+    search_results_frame = ctk.CTkScrollableFrame(
+        root,
+        width=400,
+        height=300,
+        fg_color="#1f1f1f",
+        corner_radius=10
+    )
+    search_results_frame.place_forget()
+    
+    # Bind para buscar mientras se escribe
+    search_entry.bind('<KeyRelease>', lambda event: on_search_input(search_entry.get(), update_callback))
+    
+    # Bind para perder foco
+    search_entry.bind('<FocusOut>', lambda event: ocultar_resultados())
+    
+    return search_container, search_results_frame
+
+def on_search_input(query, update_callback):
+    """Se ejecuta cuando el usuario escribe en la barra de búsqueda"""
+    global search_results_frame, search_results_visible
+    
+    if not query or len(query.strip()) < 1:
+        search_results_frame.place_forget()
+        search_results_visible = False
+        return
+    
+    # Posicionar el frame de resultados debajo de la barra de búsqueda
+    search_results_frame.lift()
+    search_results_frame.place(relx=0.35, rely=0.09, relwidth=0.5, relheight=0.4)
+    search_results_visible = True
+    
+    # Mostrar resultados
+    mostrar_resultados_busqueda(query, search_results_frame, update_callback)
+
+def ocultar_resultados():
+    """Oculta el frame de resultados cuando se pierde el foco"""
+    global search_results_frame, search_results_visible
+    search_results_frame.place_forget()
+    search_results_visible = False
 
 
 

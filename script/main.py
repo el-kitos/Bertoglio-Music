@@ -1,7 +1,7 @@
 import os
 import customtkinter as ctk
 from PIL import Image, ImageTk
-from interfazVisual import cuadros_pag_principal, aplicar_botones, botones, botones_imagen, agregar_canciones, cargar_canciones, crear_playlist, cargar_playlists, play, registrar_play_boton, next_song, previous_song, toggle_mute, set_volume, seek, update_progress, registrar_progress_slider, registrar_volume_slider, registrar_time_labels, registrar_cover_widgets, update_cover_panel, eliminar_cancion, toggle_shuffle, toggle_loop
+from interfazVisual import cuadros_pag_principal, aplicar_botones, botones, botones_imagen, agregar_canciones, cargar_canciones, crear_playlist, cargar_playlists, play, registrar_play_boton, next_song, previous_song, toggle_mute, set_volume, seek, update_progress, registrar_progress_slider, registrar_volume_slider, registrar_time_labels, registrar_cover_widgets, update_cover_panel, eliminar_cancion, toggle_shuffle, toggle_loop, crear_barra_busqueda, obtener_seleccion_desde_busqueda, resetear_seleccion_busqueda
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -21,13 +21,17 @@ bg_label = ctk.CTkLabel(root, image=bg_image, text="")
 bg_label.place(relx=0, rely=0, relwidth=1, relheight=1)
 
 def update_buttons(current_playlist, current_song=None):
+    # Verificar si la canción fue seleccionada desde la búsqueda
+    desde_busqueda = obtener_seleccion_desde_busqueda()
+    
     if current_playlist:
         if agregar_cancion_boton:
             aplicar_botones(agregar_cancion_boton, 0.06, 0.08)
             agregar_cancion_boton.lift()
         if crear_playlist_boton:
             crear_playlist_boton.place_forget()
-        if current_song and eliminar_cancion_boton:
+        # Solo mostrar botón de eliminar si hay canción Y NO fue seleccionada desde búsqueda
+        if current_song and eliminar_cancion_boton and not desde_busqueda:
             aplicar_botones(eliminar_cancion_boton, 0.06, 0.16)
             eliminar_cancion_boton.lift()
         elif eliminar_cancion_boton:
@@ -40,6 +44,9 @@ def update_buttons(current_playlist, current_song=None):
             agregar_cancion_boton.place_forget()
         if eliminar_cancion_boton:
             eliminar_cancion_boton.place_forget()
+    
+    # Resetear el flag después de actualizar los botones
+    resetear_seleccion_busqueda()
 
 def main():
     cargar_canciones()
@@ -87,6 +94,9 @@ def main():
     update_progress(root)
 
     panel = cuadros_pag_principal(root, update_buttons)
+
+    # Crear barra de búsqueda en el centro
+    crear_barra_busqueda(root, update_buttons)
 
     update_buttons(None)
 

@@ -45,7 +45,7 @@ A medida que fui avanzando, fui agregando funciones, mejorando la interfaz y cor
 
 * Ajustes finales en la interfaz
 * Mejoras generales del funcionamiento
-* Preparación del proyecto para su entrega o uso final
+
 
 ## Tecnologías usadas
 
