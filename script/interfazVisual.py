@@ -307,6 +307,12 @@ def play(play_boton):
         pygame.mixer.music.stop()
         pygame.mixer.music.load(ruta_cancion)
         
+        # Resetear metadatos a valores por defecto antes de extraer
+        current_title = 'Unknown Title'
+        current_artist = 'Unknown Artist'
+        current_cover = None
+        duration = 0
+        
         # Determinar el tipo de archivo y extraer metadata
         ext = os.path.splitext(ruta_cancion)[1].lower()
         if ext == '.mp3':
@@ -524,9 +530,16 @@ def registrar_time_labels(current_label):
 
 def update_cover_panel():
     global cover_label, artist_label, title_label, current_cover, current_artist, current_title
-    if cover_label and current_cover:
-        cover_label.configure(image=current_cover)
-        cover_label.image = current_cover
+    if cover_label:
+        if current_cover:
+            cover_label.configure(image=current_cover)
+            cover_label.image = current_cover
+        else:
+            # Resetear a imagen por defecto (gris)
+            gray_img = Image.new('RGB', (200, 200), color='gray')
+            tk_img = ImageTk.PhotoImage(gray_img)
+            cover_label.configure(image=tk_img)
+            cover_label.image = tk_img
     if artist_label:
         artist_label.configure(text=current_artist)
     if title_label:
@@ -553,6 +566,13 @@ def cargar_canciones():
                 playlists = datos
     except (json.JSONDecodeError, ValueError):
         playlists = {}
+    
+    # Filtrar canciones que no existen en el directorio musica
+    for playlist_name in playlists:
+        playlists[playlist_name] = [song for song in playlists[playlist_name] if os.path.exists(os.path.join(MUSICA_DIR, song))]
+    
+    # Guardar las playlists filtradas
+    guardar_playlists()
     
     # Limpiar cache de metadatos al cargar nuevas playlists
     metadatos_cache = {}
